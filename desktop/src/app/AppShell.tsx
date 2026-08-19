@@ -30,10 +30,15 @@ import {
   useHideDmMutation,
   useOpenDmMutation,
 } from "@/features/channels/hooks";
+import { useThreadRail } from "@/features/channels/useThreadRail";
+import { threadRailRootIdFromSearch } from "@/features/channels/threadRailNavigation";
+import { ThreadRailProvider } from "@/features/channels/ThreadRailContext";
+import { ThreadRail } from "@/features/channels/ui/ThreadRail";
 import { useUnreadChannels } from "@/features/channels/useUnreadChannels";
 import { useMembershipNotifications } from "@/features/channels/useMembershipNotifications";
 import { useFeedItemState } from "@/features/home/useFeedItemState";
 import { useThreadFollows } from "@/features/messages/lib/useThreadFollows";
+import { getThreadReference } from "@/features/messages/lib/threading";
 import {
   useHomeFeedNotifications,
   useHomeFeedNotificationState,
@@ -173,6 +178,11 @@ export function AppShell() {
     : DEFAULT_SETTINGS_SECTION;
   const startupReady = useDeferredStartup();
   const identityQuery = useIdentityQuery();
+  const threadRail = useThreadRail(
+    identityQuery.data?.pubkey,
+    communitiesHook.activeCommunity?.relayUrl,
+  );
+  const openThreadRootId = threadRailRootIdFromSearch(location.search);
   const { mutedChannelIds, muteChannel, unmuteChannel } = useChannelMutes(
     identityQuery.data?.pubkey,
     communitiesHook.activeCommunity?.relayUrl,
@@ -406,6 +416,16 @@ export function AppShell() {
     threadActivityItems,
     mutedRootIds,
   });
+  const unreadThreadRootIds = React.useMemo(
+    () =>
+      new Set(
+        unreadThreadFeedItems.flatMap((item) => {
+          const rootId = getThreadReference(item.tags).rootId;
+          return rootId ? [rootId] : [];
+        }),
+      ) as ReadonlySet<string>,
+    [unreadThreadFeedItems],
+  );
   const markAllChannelsRead = React.useCallback(() => {
     markAllReadSources({
       activeChannelId: activeChannel?.id ?? null,
@@ -899,8 +919,24 @@ export function AppShell() {
                       mainInsetRef={mainInsetRef}
                       terminal={<TerminalBootstrap {...terminalContext} />}
                     >
-                      <Outlet />
+                      <ThreadRailProvider rail={threadRail}>
+                        <Outlet />
+                      </ThreadRailProvider>
                     </AppShellChannelSurface>
+                    {!isHuddleRoom ? (
+                      <ThreadRail
+                        collapsed={threadRail.collapsed}
+                        onNavigate={(destination) =>
+                          void goChannel(destination.channelId, destination)
+                        }
+                        onToggleCollapsed={threadRail.toggleCollapsed}
+                        onUnpin={threadRail.unpin}
+                        openThreadRootId={openThreadRootId}
+                        pins={threadRail.pins}
+                        selectedChannelId={selectedChannelId}
+                        unreadRootIds={unreadThreadRootIds}
+                      />
+                    ) : null}
                     {!isHuddleRoom ? (
                       <RelayConnectionOverlay
                         card={relayConnectionCard}
