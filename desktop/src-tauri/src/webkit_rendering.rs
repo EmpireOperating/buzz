@@ -16,7 +16,8 @@
 //! no second chance later in the same process. This module therefore decides
 //! from cheap preflight signals instead of reacting to a crash:
 //!
-//! * an NVIDIA GPU, the driver family behind most upstream reports; and
+//! * an NVIDIA GPU, where the shared-memory transport alone still leaves
+//!   WebKit's accelerated compositor on an unstable EGL path; and
 //! * AppImage packaging, where linuxdeploy's AppRun hook pins `GDK_BACKEND=x11`
 //!   and the dmabuf renderer buys nothing on that XWayland path (#2338).
 //!
@@ -49,9 +50,9 @@ const DISABLE_DMABUF: &str = "WEBKIT_DISABLE_DMABUF_RENDERER";
 /// Drops accelerated compositing as well. `--safe-rendering` only.
 const DISABLE_COMPOSITING: &str = "WEBKIT_DISABLE_COMPOSITING_MODE";
 
-/// What the heuristic applies: force shared-memory transport without emptying
-/// the buffer mode set (#3654).
-const HEURISTIC: [&str; 1] = [FORCE_SHM];
+/// What the AppImage heuristic applies: force shared-memory transport without
+/// emptying the buffer mode set (#3654).
+const APPIMAGE_HEURISTIC: [&str; 1] = [FORCE_SHM];
 
 /// What `--safe-rendering` applies: FORCE_SHM plus compositing off. Deliberately
 /// omits DISABLE_DMABUF — that variable is the #3654 crash on current WebKit.
@@ -165,23 +166,26 @@ fn plan(
         };
     }
 
-    let signals = [
-        (nvidia_gpu(drm_root), "NVIDIA GPU"),
-        (env("APPIMAGE").is_some(), "AppImage"),
-    ];
-    let hits: Vec<&str> = signals
-        .iter()
-        .filter_map(|(hit, label)| hit.then_some(*label))
-        .collect();
+    if nvidia_gpu(drm_root) {
+        // FORCE_SHM avoids dmabuf transport, but WebKit can still create a
+        // SkiaGPUWorker through accelerated compositing. NVIDIA EGL crashes in
+        // that worker are fatal to the whole web process, so use the existing
+        // fully safe configuration on detected NVIDIA systems.
+        return Plan::Apply {
+            vars: &SAFE_VARS,
+            why: "NVIDIA GPU".to_string(),
+        };
+    }
 
-    match hits.is_empty() {
-        true => Plan::Leave {
-            why: "no NVIDIA GPU and not an AppImage".to_string(),
-        },
-        false => Plan::Apply {
-            vars: &HEURISTIC,
-            why: hits.join(", "),
-        },
+    if env("APPIMAGE").is_some() {
+        return Plan::Apply {
+            vars: &APPIMAGE_HEURISTIC,
+            why: "AppImage".to_string(),
+        };
+    }
+
+    Plan::Leave {
+        why: "no NVIDIA GPU and not an AppImage".to_string(),
     }
 }
 

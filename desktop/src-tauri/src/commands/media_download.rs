@@ -18,7 +18,7 @@ use crate::commands::{
 use crate::relay::{classify_request_error, relay_api_base_url_with_override, relay_error_message};
 
 /// Maximum download size: 50 MiB. Prevents OOM from oversized responses.
-const MAX_DOWNLOAD_BYTES: u64 = 50 * 1024 * 1024;
+pub(super) const MAX_DOWNLOAD_BYTES: u64 = 50 * 1024 * 1024;
 
 /// Download request timeout.
 const DOWNLOAD_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(60);

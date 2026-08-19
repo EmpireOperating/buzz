@@ -6,6 +6,7 @@ import { buildOutgoingMessage } from "@/features/messages/lib/imetaMediaMarkdown
 import { useChannelLinks } from "@/features/messages/lib/useChannelLinks";
 import type { ChannelSuggestion } from "@/features/messages/lib/useChannelLinks";
 import { useMediaUpload } from "@/features/messages/lib/useMediaUpload";
+import { useComposerClipboardImagePaste } from "@/features/messages/lib/useNativeClipboardImagePaste";
 import { useMentions } from "@/features/messages/lib/useMentions";
 import {
   hasMentionClipboardHtml,
@@ -350,8 +351,11 @@ export function ForumComposer({
   );
 
   // ── Media paste ─────────────────────────────────────────────────────
-  const uploadFileRef = React.useRef(media.uploadFile);
-  uploadFileRef.current = media.uploadFile;
+  const handleClipboardFilePaste = useComposerClipboardImagePaste(
+    richText.editor,
+    media.uploadFile,
+    media.setUploadState,
+  );
 
   React.useEffect(() => {
     if (!richText.editor) return;
@@ -360,15 +364,7 @@ export function ForumComposer({
       editorProps: {
         ...richText.editor.options.editorProps,
         handlePaste: (_view, event) => {
-          const items = Array.from(event.clipboardData?.items ?? []);
-          // Any actual file pastes as an attachment; text/string items fall
-          // through to the handlers below.
-          const mediaItem = items.find((item) => item.kind === "file");
-          if (mediaItem) {
-            const file = mediaItem.getAsFile();
-            if (file) {
-              void uploadFileRef.current(file);
-            }
+          if (handleClipboardFilePaste(event)) {
             return true;
           }
 
@@ -384,7 +380,7 @@ export function ForumComposer({
         },
       },
     });
-  }, [richText.editor]);
+  }, [handleClipboardFilePaste, richText.editor]);
 
   const sendDisabled = React.useMemo(
     () =>

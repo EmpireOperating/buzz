@@ -72,6 +72,50 @@ export async function fetchMediaBytes(
   return new Uint8Array(bytes);
 }
 
+/** Wrap native PNG bytes in the File expected by media.uploadFile. */
+export function clipboardPngBytesToFile(bytes: ArrayBuffer): File {
+  return new File([new Uint8Array(bytes)], "clipboard-image.png", {
+    type: "image/png",
+  });
+}
+
+const CLIPBOARD_IMAGE_UNAVAILABLE = "clipboard image unavailable";
+
+export function handleClipboardImageReadError(error: unknown): null {
+  const message = error instanceof Error ? error.message : String(error);
+  if (message.includes(CLIPBOARD_IMAGE_UNAVAILABLE)) return null;
+  throw error;
+}
+
+/**
+ * Read a screenshot from the OS clipboard. Tauri is needed on WebKitGTK, where
+ * paste events may expose image/* in `types` but omit DOM File payloads.
+ * Browser clipboard reads remain a best-effort fallback for web builds.
+ */
+export async function readImageFromSystemClipboard(): Promise<File | null> {
+  try {
+    if (isTauri() || import.meta.env.MODE === "e2e") {
+      const png = await invokeTauri<ArrayBuffer>("read_clipboard_image");
+      return clipboardPngBytesToFile(png);
+    }
+
+    const items = await navigator.clipboard?.read?.();
+    for (const item of items ?? []) {
+      const type = item.types.find((candidate) =>
+        candidate.startsWith("image/"),
+      );
+      if (!type) continue;
+      const blob = await item.getType(type);
+      return new File([blob], "clipboard-image.png", {
+        type: blob.type || type,
+      });
+    }
+  } catch (error) {
+    return handleClipboardImageReadError(error);
+  }
+  return null;
+}
+
 /** Read plain text without depending on embedded-webview clipboard grants. */
 export async function readTextFromSystemClipboard(): Promise<string> {
   // E2E installs Tauri's mocked IPC surface in a browser page, where the SDK's

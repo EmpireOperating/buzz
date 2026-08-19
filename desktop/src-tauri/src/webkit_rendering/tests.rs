@@ -44,13 +44,18 @@ fn applied(plan: &Plan) -> Option<&[&str]> {
 // ── Detection ───────────────────────────────────────────────────────────────
 
 #[test]
-fn test_nvidia_gpu_forces_shared_memory_dmabuf_transport() {
+fn test_nvidia_gpu_uses_safe_rendering() {
     let drm = drm(&["0x10de"]);
     let plan = plan(NO_ARGS, &env_from(&[]), drm.path());
 
     assert_eq!(
         applied(&plan),
-        Some(&["WEBKIT_DMABUF_RENDERER_FORCE_SHM"][..])
+        Some(
+            &[
+                "WEBKIT_DMABUF_RENDERER_FORCE_SHM",
+                "WEBKIT_DISABLE_COMPOSITING_MODE"
+            ][..]
+        )
     );
     let Plan::Apply { why, .. } = &plan else {
         unreachable!()
@@ -66,7 +71,12 @@ fn test_an_nvidia_gpu_alongside_another_vendor_still_counts() {
 
     assert_eq!(
         applied(&plan(NO_ARGS, &env_from(&[]), drm.path())),
-        Some(&["WEBKIT_DMABUF_RENDERER_FORCE_SHM"][..])
+        Some(
+            &[
+                "WEBKIT_DMABUF_RENDERER_FORCE_SHM",
+                "WEBKIT_DISABLE_COMPOSITING_MODE"
+            ][..]
+        )
     );
 }
 
@@ -76,7 +86,12 @@ fn test_the_vendor_id_match_ignores_case() {
 
     assert_eq!(
         applied(&plan(NO_ARGS, &env_from(&[]), drm.path())),
-        Some(&["WEBKIT_DMABUF_RENDERER_FORCE_SHM"][..])
+        Some(
+            &[
+                "WEBKIT_DMABUF_RENDERER_FORCE_SHM",
+                "WEBKIT_DISABLE_COMPOSITING_MODE"
+            ][..]
+        )
     );
 }
 
@@ -133,7 +148,12 @@ fn test_a_device_without_a_vendor_file_is_skipped_not_fatal() {
 
     assert_eq!(
         applied(&plan(NO_ARGS, &env_from(&[]), root.path())),
-        Some(&["WEBKIT_DMABUF_RENDERER_FORCE_SHM"][..])
+        Some(
+            &[
+                "WEBKIT_DMABUF_RENDERER_FORCE_SHM",
+                "WEBKIT_DISABLE_COMPOSITING_MODE"
+            ][..]
+        )
     );
 }
 

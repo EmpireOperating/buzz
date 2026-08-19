@@ -2,6 +2,7 @@ import * as React from "react";
 import { EditorContent } from "@tiptap/react";
 import { useChannelLinks } from "@/features/messages/lib/useChannelLinks";
 import { handleAgentSnapshotPaste } from "@/features/messages/lib/agentSnapshotClipboard";
+import { useComposerClipboardImagePaste } from "@/features/messages/lib/useNativeClipboardImagePaste";
 import { useComposerAutofocus } from "@/features/messages/lib/useComposerAutofocus";
 import type { ChannelSuggestion } from "@/features/messages/lib/useChannelLinks";
 import { useDrafts } from "@/features/messages/lib/useDrafts";
@@ -732,25 +733,18 @@ function MessageComposerImpl({
     ],
   );
   // ── Media paste + ⌘K link shortcut via Tiptap editorProps ──────────
-  const uploadFileRef = React.useRef(media.uploadFile);
-  uploadFileRef.current = media.uploadFile;
+  const handleClipboardFilePaste = useComposerClipboardImagePaste(
+    richText.editor,
+    media.uploadFile,
+    media.setUploadState,
+  );
   React.useEffect(() => {
     if (!richText.editor) return;
     richText.editor.setOptions({
       editorProps: {
         ...richText.editor.options.editorProps,
         handlePaste: (_view, event) => {
-          // --- File paste ---
-          // Any actual file (image, video, document, …) pastes as an
-          // attachment. String/text items have kind "string", so plain-text
-          // and code-block paste fall through to the handlers below.
-          const items = Array.from(event.clipboardData?.items ?? []);
-          const mediaItem = items.find((item) => item.kind === "file");
-          if (mediaItem) {
-            const file = mediaItem.getAsFile();
-            if (file) {
-              void uploadFileRef.current(file);
-            }
+          if (handleClipboardFilePaste(event)) {
             return true;
           }
           // --- Buzz code-block paste ---
@@ -798,7 +792,12 @@ function MessageComposerImpl({
         },
       },
     });
-  }, [media.setPendingImeta, richText.editor, scrollComposerToBottom]);
+  }, [
+    handleClipboardFilePaste,
+    media.setPendingImeta,
+    richText.editor,
+    scrollComposerToBottom,
+  ]);
   // ── Send button state ───────────────────────────────────────────────
   const sendDisabled =
     composerDisabled ||

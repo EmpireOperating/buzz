@@ -510,7 +510,6 @@ pub fn run() {
             }
 
             try_regenerate_nest(&app_handle);
-
             if let Some(mgr) = huddle::models::global_model_manager() {
                 mgr.start_stt_download(state.http_client.clone());
                 mgr.start_tts_download(state.http_client.clone());
@@ -750,6 +749,7 @@ pub fn run() {
             copy_image_to_clipboard,
             copy_text_to_clipboard,
             read_clipboard_text,
+            read_clipboard_image,
             fetch_snapshot_bytes,
             relay_requires_membership,
             list_relay_members,
