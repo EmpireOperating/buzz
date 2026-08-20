@@ -123,7 +123,9 @@ export function useThreadReplies(
       if (!activeChannel || !openThreadRootId) return [];
       return loadThreadReplies(queryClient, activeChannel.id, openThreadRootId);
     },
-    staleTime: 0,
+    // Live subscriptions merge new replies/aux into this cache, so a recent
+    // revisit can render immediately without a redundant full subtree fetch.
+    staleTime: 30_000,
     gcTime: 60 * 60 * 1_000,
   });
 }
