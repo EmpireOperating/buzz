@@ -26,7 +26,7 @@ test("Thread Rail paints one full-height rounded panel inside the unframed colum
     assert.match(className, /self-start/);
     assert.match(className, /rounded-2xl/);
     assert.match(className, /overflow-hidden/);
-    assert.match(className, /bg-background(?!\/)/);
+    assert.match(className, /bg-card\/\[0\.95\]/);
     assert.match(className, /shadow-content-edge/);
     assert.match(className, /ring-border\/30/);
     assert.match(className, /ring-inset/);
