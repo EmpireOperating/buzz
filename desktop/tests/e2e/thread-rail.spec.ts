@@ -113,8 +113,9 @@ test("pins a canonical thread, switches it from the collapsible rail, and unpins
   expect(paneGeometry).toMatchObject({
     railTop: paneGeometry.contentTop,
     railRadius: paneGeometry.contentRadius,
-    railBackground: paneGeometry.contentBackground,
   });
+  expect(paneGeometry.railBackground).not.toBe(paneGeometry.contentBackground);
+  expect(paneGeometry.railBackground).toMatch(/\/ 0\.95\)$/);
   expect(paneGeometry.railBottom).toBe(paneGeometry.contentBottom);
   expect(paneGeometry.hasRailColumn).toBe(false);
   expect(paneGeometry.appSidebarLayerBackground).toBe("rgba(0, 0, 0, 0)");
