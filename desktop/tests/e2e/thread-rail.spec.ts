@@ -162,6 +162,7 @@ test("pins a canonical thread, switches it from the collapsible rail, and unpins
 
   await rail.getByTestId(`edit-thread-rail-title-${root.id}`).click();
   const titleInput = rail.getByTestId(`thread-rail-title-input-${root.id}`);
+  await expect(titleInput).toBeFocused();
   await titleInput.fill("Roadmap");
   await titleInput.press("Enter");
   await expect(entry).toHaveAttribute("aria-label", "Roadmap");

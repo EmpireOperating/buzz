@@ -48,6 +48,13 @@ export function ThreadRail({
 }) {
   const [editingPinKey, setEditingPinKey] = React.useState<string | null>(null);
   const [titleDraft, setTitleDraft] = React.useState("");
+  const titleInputRef = React.useRef<HTMLInputElement>(null);
+
+  React.useEffect(() => {
+    if (!editingPinKey) return;
+    titleInputRef.current?.focus();
+    titleInputRef.current?.select();
+  }, [editingPinKey]);
   if (pins.length === 0) return null;
   return (
     <aside
@@ -115,7 +122,6 @@ export function ThreadRail({
                 {editing ? (
                   <input
                     aria-label={`Rename ${fallbackLabel}`}
-                    autoFocus
                     className="min-w-0 flex-1 bg-transparent px-2.5 py-2 text-sm outline-none"
                     data-testid={`thread-rail-title-input-${pin.rootId}`}
                     onBlur={() => {
@@ -130,6 +136,7 @@ export function ThreadRail({
                       }
                       if (event.key === "Escape") setEditingPinKey(null);
                     }}
+                    ref={titleInputRef}
                     value={titleDraft}
                   />
                 ) : (
